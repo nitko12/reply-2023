@@ -4,12 +4,20 @@
 #include <cstdlib>
 
 #define POP_SIZE 1000
+#define CLONE_FACTOR 100
 
 using namespace std;
 
 struct Specimen {
 	vector<vector<string>> snakes;
 	vector<vector<bool>> map;
+	int fitness;
+};
+
+struct custom_less_than {
+	inline bool operator() (const Specimen& specimen1, const Specimen& specimen2) {
+		return (specimen1.fitness < specimen2.fitness);
+	}
 };
 
 int C;
@@ -73,11 +81,11 @@ bool recursiveGenerate(vector<string>& snake_string, vector<vector<bool>>& map, 
 	if(map[i][j]) {
 		return false;
 	}
+	
+	--length;
 
-	bool onWormhole = matrix[i][j] == "*";
-
-	if(onWormhole) {
-		if(length == 1) {
+	if(matrix[i][j] == "*") {
+		if(length == 0) {
 			return false;
 		}
 		if(!wormhole(map, &i, &j)) {
@@ -85,9 +93,13 @@ bool recursiveGenerate(vector<string>& snake_string, vector<vector<bool>>& map, 
 		}
 		snake_string.push_back(to_string(i));
 		snake_string.push_back(to_string(j));
-		--length;
+		bool success = recursiveGenerate(snake_string, map, i, j, length);
+		if(!success) {
+			snake_string.pop_back();
+			snake_string.pop_back();
+		}
+		return success;
 	}
-	--length;
 	map[i][j] = 1;
 	if(length == 0) {
 		return true;
@@ -96,7 +108,7 @@ bool recursiveGenerate(vector<string>& snake_string, vector<vector<bool>>& map, 
 	int direction = rand() % 4;
 	bool success = false;
 	for(int k = 0; k < 4; ++k, direction = (direction + 1) % 4){
-	int new_i = i, new_j = j;
+		int new_i = i, new_j = j;
 		switch(direction) {
 			case 0:
 				if(--new_i < 0) {
@@ -132,10 +144,6 @@ bool recursiveGenerate(vector<string>& snake_string, vector<vector<bool>>& map, 
 	}
 	if(!success) {
 		map[i][j] = 0;
-		if(onWormhole) {
-			snake_string.pop_back();
-			snake_string.pop_back();
-		}
 	}
 	return success;
 }
@@ -165,19 +173,37 @@ bool generateSpecimen(Specimen& specimen) {
 void initPopulation(Specimen* population) {
 	for(int i = 0; i < POP_SIZE; ++i) {
 		Specimen newSpecimen = {vector<vector<string>>(),
-								vector<vector<bool>>(R, vector<bool>(C, 0))};
+								vector<vector<bool>>(R, vector<bool>(C, 0)),
+								0};
 		generateSpecimen(newSpecimen);
 		population[i] = newSpecimen;
 	}
 }
 
-vector<vector<string>> immunological() {
+void evaluate(Specimen* population, int popSize) {
+	for(int p = 0; p < popSize; ++p) {
+		population[p].fitness = 0;
+		for(int i = 0; i < R; ++i) {
+			for(int j = 0; j < C; ++j) {
+				if(population[p].map[i][j]) {
+					population[p].fitness += stoi(matrix[i][j]);
+				}
+			}
+		}
+	}
+}
+
+/*vector<vector<string>>*/ void immunological() {
 	
 	// inicijaliziraj populaciju
 	Specimen population[POP_SIZE];
+	Specimen clones[POP_SIZE*CLONE_FACTOR];
 	initPopulation(population);
+
 	// ponavljaj do zaustavljanja:
+	for(int iter = 0; iter < 1; ++iter) {
 		// evaluiraj populaciju
+		evaluate(population, POP_SIZE);
 		// odaberi neke ili sve za kloniranje
 		// kloniraj odabrane
 		// hipermutiraj klonove
@@ -185,7 +211,18 @@ vector<vector<string>> immunological() {
 		// populacija = najbolji klonovi
 		// stvori skroz nove jedinke
 		// zamijeni najgore u populaciji s novim jedinkama
-	
+	}
+
+	for(int k = 0; k < POP_SIZE; ++k) {
+		cout << "SPECIMEN " << k << "\tFitness=" << population[k].fitness << "\n";
+		for(int i = 0; i < population[k].snakes.size(); ++i) {
+			for(int j = 0; j < population[k].snakes[i].size(); ++j) {
+				cout << population[k].snakes[i][j] << " ";
+			}
+			cout << "\n";
+		}
+	}
+		
 	// vrati najbolju jedinku
 }
 
@@ -216,17 +253,9 @@ int main() {
 		}
 	}
 
-	Specimen newSpecimen = {vector<vector<string>>(),
-								vector<vector<bool>>(R, vector<bool>(C, 0))};
-	bool what = generateSpecimen(newSpecimen);
-	for(int i = 0; i < newSpecimen.snakes.size(); ++i) {
-		for(int j = 0; j < newSpecimen.snakes[i].size(); ++j) {
-			cout << newSpecimen.snakes[i][j] << " ";
-		}
-		cout << "\n";
-	}
+	immunological();
 
-	/*vector<vector<string>> best = immunological(C, R, S, Slens, matrix);
+	/*vector<vector<string>> best = immunological();
 	
 	for(int i = 0; i < best.size(); ++i) {
 		cout << best[i][0];
