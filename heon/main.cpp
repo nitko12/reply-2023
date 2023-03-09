@@ -33,6 +33,8 @@ struct Instance {
   }
 };
 
+int total_score = 0;
+
 struct Solution {
   vector<vector<string>> snakes;
   vector<vector<int>> used;
@@ -44,11 +46,16 @@ struct Solution {
     used.resize(ins->R, vector<int>(ins->C));
   }
 
-  void dfs(int i, int j, int len) {
+  void dfs(int i, int j, int len, int score, bool wormhole = false) {
+    // cout << score << " -> " << ins->V[i][j] << endl;
     used[i][j] = 1;
 
     if (len == 0) {
-      current_snake_found_path = true;
+      if (score > 0) {
+        current_snake_found_path = true;
+        // cout << "snake done with score " << score << endl;
+        total_score += score;
+      }
       return;
     }
 
@@ -60,7 +67,8 @@ struct Solution {
       if (used[ni][nj])
         continue;
 
-      if (ins->wormhole[ni][nj]) {
+      if (ins->wormhole[ni][nj] && !wormhole) {
+        continue;
         int wi = -1;
         int wj = -1;
 
@@ -82,7 +90,7 @@ struct Solution {
         snakes.back().push_back(string(1, MOVE[dir]));
         snakes.back().push_back(to_string(wj));
         snakes.back().push_back(to_string(wi));
-        dfs(wi, wj, len - 1);
+        dfs(wi, wj, len - 1, score, true);
         if (!current_snake_found_path) {
           snakes.back().pop_back();
           snakes.back().pop_back();
@@ -93,7 +101,7 @@ struct Solution {
       }
 
       snakes.back().push_back(string(1, MOVE[dir]));
-      dfs(ni, nj, len - 1);
+      dfs(ni, nj, len - 1, score + ins->V[ni][nj], wormhole);
       if (!current_snake_found_path)
         snakes.back().pop_back();
     } 
@@ -104,7 +112,7 @@ struct Solution {
     snakes.back().push_back(to_string(i));
 
     // TODO: make smarter dfs, mby greedy? idk
-    dfs(i, j, snake_len - 1);
+    dfs(i, j, snake_len - 1, ins->V[i][j]);
     if (current_snake_found_path)
       current_snake_found_path = false;
     else {
@@ -126,10 +134,12 @@ Solution generate_random_sol(Instance &ins) {
     if (!ins.L[it])
       continue;
 
-    for (int tries = 0; tries < 10; tries++) {
+    for (int tries = 0; tries < 50000; tries++) {
       int i = rand(0, ins.R - 1);
       int j = rand(0, ins.C - 1);
       if (ins.wormhole[i][j] || sol.used[i][j])
+        continue;
+      if (ins.V[i][j] < 0)
         continue;
 
       sol.add_snake_at(i, j, ins.L[it]);
@@ -170,9 +180,9 @@ int main() {
   // string const file_path = "../in/01-chilling-cat.txt";
   // string const file_path = "../in/02-swarming-ant.txt";
   // string const file_path = "../in/03-input-anti-greedy.txt";
-  string const file_path = "../in/04-input-low-points.txt";
+  // string const file_path = "../in/04-input-low-points.txt";
   // string const file_path = "../in/05-input-opposite-points-holes.txt";
-  // string const file_path = "../in/06-input-reply-running-man.txt";
+  string const file_path = "../in/06-input-reply-running-man.txt";
   
   ifstream in(file_path);
   
@@ -184,6 +194,7 @@ int main() {
   input_matrix(ins, in);
 
   Solution sol = generate_random_sol(ins);
+  // cout << "total score should be " << total_score << endl;
   int it = 0;
   for (auto &snake_path : sol.snakes) {
     for (auto &move : snake_path)
