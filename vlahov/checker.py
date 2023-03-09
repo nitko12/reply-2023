@@ -19,7 +19,12 @@ final_score = 0
 
 with open(sol_file_name, "r") as sol_file:
     for idx, sl in enumerate(snake_lengths):
-        [sx, sy, *moves] = sol_file.readline().strip().split()
+        sol_file_line = sol_file.readline().strip()
+
+        if sol_file_line == "":
+            continue
+
+        [sx, sy, *moves] = sol_file_line.split()
         sx = int(sx)
         sy = int(sy)
 
