@@ -38,9 +38,10 @@ with open(sol_file_name, "r") as sol_file:
         print(int(field[sy][sx]), end=" ")
         
         while moves_done < sl - 1:
-            if (visited[sy][sx] != -1):
-                raise Exception(f"Snake {idx} stepped on the same spot as snake {visited[sy][sx]} [{sx}, {sy}].")
+            if (field[sy][sx] != '*' and visited[sy][sx] != -1):
+                raise Exception(f"Snake {idx} stepped on the same spot as snake {visited[sy][sx]} - [{sx}, {sy}].")
 
+            visited[sy][sx] = idx
             move = moves[move_idx]
             if move == 'D':
                 sy = (sy + 1) % h
@@ -56,6 +57,9 @@ with open(sol_file_name, "r") as sol_file:
             if field[sy][sx] == '*':
                 sx = int(moves[move_idx + 1])
                 sy = int(moves[move_idx + 2])
+                if field[sy][sx] != '*':
+                    raise Exception(f"Snake {idx} tried to teleport to [{sx}, {sy}] which is not a wormhole.")
+
                 move_idx += 3
             else:
                 final_score += int(field[sy][sx])
@@ -65,6 +69,8 @@ with open(sol_file_name, "r") as sol_file:
             moves_done += 1
 
         print("")
+        print(f"Snake {idx} finished on [{sx}, {sy}] which has value of {field[sy][sx]}.")
+
         if move_idx != len(moves):
             raise Exception(f"There are more moves than needed for snake {idx}.")
 
