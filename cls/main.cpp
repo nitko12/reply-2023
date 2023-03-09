@@ -22,12 +22,41 @@ string** matrix;
 bool wormhole(vector<vector<bool>>& map, int* i, int* j) {
 	for(int t = 0; t < wormholeLocations.size(); ++t){
 		int newLocation = rand() % wormholeLocations.size();
-		int new_i = wormholeLocations[newLocation].first;
-		int new_j = wormholeLocations[newLocation].second;
-		if(new_i != *i || new_j != *j) {
-			*i = new_i;
-			*j = new_j;
-			return true;
+		int wnew_i = wormholeLocations[newLocation].first;
+		int wnew_j = wormholeLocations[newLocation].second;
+		if(wnew_i != *i || wnew_j != *j) {
+			int new_i = wnew_i;
+			int new_j = wnew_j;
+			int direction = rand() % 4;
+			for(int k = 0; k < 4; ++k, direction = (direction + 1) % 4){
+				switch(direction) {
+					case 0:
+						if(--new_i < 0) {
+							new_i = R - 1;
+						}
+					break;
+					case 1:
+						if(++new_i >= R) {
+							new_i = 0;
+						}
+					break;
+					case 2:
+						if(--new_j < 0) {
+							new_j = C - 1;
+						}
+					break;
+					case 3:
+						if(++new_j >= C) {
+							new_j = 0;
+						}
+					break;
+				}
+				if(map[new_i][new_j] == 0) {
+					*i = new_i;
+					*j = new_j;
+					return true;
+				}
+			}
 		}
 	}
 	return false;
@@ -66,32 +95,32 @@ bool recursiveGenerate(vector<string>& snake_string, vector<vector<bool>>& map, 
 
 	int direction = rand() % 4;
 	bool success = false;
-	int new_i = i, new_j = j;
 	for(int k = 0; k < 4; ++k, direction = (direction + 1) % 4){
+	int new_i = i, new_j = j;
 		switch(direction) {
 			case 0:
 				if(--new_i < 0) {
 					new_i = R - 1;
 				}
-				snake_string.push_back("L");
+				snake_string.push_back("U");
 			break;
 			case 1:
 				if(++new_i >= R) {
 					new_i = 0;
 				}
-				snake_string.push_back("R");
+				snake_string.push_back("D");
 			break;
 			case 2:
 				if(--new_j < 0) {
 					new_j = C - 1;
 				}
-				snake_string.push_back("U");
+				snake_string.push_back("L");
 			break;
 			case 3:
 				if(++new_j >= C) {
 					new_j = 0;
 				}
-				snake_string.push_back("D");
+				snake_string.push_back("R");
 			break;
 		}
 		success = recursiveGenerate(snake_string, map, new_i, new_j, length);
@@ -120,7 +149,7 @@ bool generateSpecimen(Specimen& specimen) {
 			vector<string> snake_string;
 			snake_string.push_back(to_string(i));
 			snake_string.push_back(to_string(j));
-			success = recursiveGenerate(snake_string, specimen.map, i, j, Slens[snake] - 1);
+			success = recursiveGenerate(snake_string, specimen.map, i, j, Slens[snake]);
 			if(success) {
 				specimen.snakes.push_back(snake_string);
 				break;
@@ -135,7 +164,7 @@ bool generateSpecimen(Specimen& specimen) {
 
 void initPopulation(Specimen* population) {
 	for(int i = 0; i < POP_SIZE; ++i) {
-		Specimen newSpecimen = {vector<vector<string>>(S, vector<string>()),
+		Specimen newSpecimen = {vector<vector<string>>(),
 								vector<vector<bool>>(R, vector<bool>(C, 0))};
 		generateSpecimen(newSpecimen);
 		population[i] = newSpecimen;
@@ -181,13 +210,15 @@ int main() {
 	for(int i = 0; i < R; ++i) {
 		for(int j = 0; j < C; ++j) {
 			cin >> matrix[i][j];
+			if(matrix[i][j] == "*") {
+				wormholeLocations.push_back(make_pair(i, j));
+			}
 		}
 	}
 
-	Specimen newSpecimen = {vector<vector<string>>(S, vector<string>()),
+	Specimen newSpecimen = {vector<vector<string>>(),
 								vector<vector<bool>>(R, vector<bool>(C, 0))};
 	bool what = generateSpecimen(newSpecimen);
-	cout << what << "\n";
 	for(int i = 0; i < newSpecimen.snakes.size(); ++i) {
 		for(int j = 0; j < newSpecimen.snakes[i].size(); ++j) {
 			cout << newSpecimen.snakes[i][j] << " ";
