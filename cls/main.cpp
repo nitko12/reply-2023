@@ -34,6 +34,13 @@ bool wormhole(vector<vector<bool>>& map, int* i, int* j) {
 }
 
 bool recursiveGenerate(vector<string>& snake_string, vector<vector<bool>>& map, int i, int j, int length) {
+	/*cout << "LENGHT=" << length << "\n";
+	for(int i = 0; i < snake_string.size(); ++i) {
+		cout << snake_string[i] << " ";
+	}
+	
+	cout << "\n";
+	*/
 	if(map[i][j]) {
 		return false;
 	}
@@ -90,14 +97,16 @@ bool recursiveGenerate(vector<string>& snake_string, vector<vector<bool>>& map, 
 		success = recursiveGenerate(snake_string, map, new_i, new_j, length);
 		if(!success) {
 			snake_string.pop_back();
+		} else {
+			break;
 		}
 	}
 	if(!success) {
 		map[i][j] = 0;
-		/*if(onWormhole) {
+		if(onWormhole) {
 			snake_string.pop_back();
 			snake_string.pop_back();
-		}*/
+		}
 	}
 	return success;
 }
@@ -111,7 +120,7 @@ bool generateSpecimen(Specimen& specimen) {
 			vector<string> snake_string;
 			snake_string.push_back(to_string(i));
 			snake_string.push_back(to_string(j));
-			success = recursiveGenerate(snake_string, specimen.map, i, j, Slens[snake]);
+			success = recursiveGenerate(snake_string, specimen.map, i, j, Slens[snake] - 1);
 			if(success) {
 				specimen.snakes.push_back(snake_string);
 				break;
