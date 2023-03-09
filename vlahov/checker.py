@@ -26,6 +26,8 @@ with open(sol_file_name, "r") as sol_file:
         if len(moves) < sl - 1:
             raise Exception(f"There are less moves than needed for snake {idx}")
 
+        if sy < 0 or sy >= h or sx < 0 or sx >= w:
+            raise Exception(f"Starting position [{sx}, {sy}] out of range [0-{w-1}, 0-{h-1}]")
         if field[sy][sx] == '*':
             raise Exception(f"Snake {idx} cannot start at the wormhole [{sx}, {sy}].")
 
