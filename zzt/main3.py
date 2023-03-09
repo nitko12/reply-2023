@@ -24,27 +24,54 @@ def main():
 
     chars = {}
 
+    offset = 0
+
     for i in range(n):
         for j in range(m):
             if a[i][j] != '*':
-                G.add_node((i, j))
+
+                if int(a[i][j]) > offset:
+                    G.add_node((i, j))
+
+    threshold = 0
+
+    # plot dist od a
+
+    costs = sum(a, [])
+
+    # plt.hist(
+    #     costs,
+    #     bins=100
+    # )
+
+    # plt.show()
+
+    # exit(0)
 
     for i in range(n):
         for j in range(m):
             if a[i][j] != '*':
                 dx = [-1, 0, 0, 1]
                 dy = [0, -1, 1, 0]
-                dc = "ULDR"
+                dc = "LUDR"
 
                 for d in range(4):
                     xx = (j + dx[d]) % m
                     yy = (i + dy[d]) % n
 
                     if a[yy][xx] != '*':
+
+                        if int(a[yy][xx]) <= offset and int(a[i][j]) <= offset:
+                            continue
+
                         G.add_edge((i, j), (yy, xx))
+                        G.add_edge((yy, xx), (i, j))
+
                         chars[(i, j), (yy, xx)] = dc[d]
 
                         # print((i, j), (yy, xx), dc[d])
+
+    print(G)
 
     for len_ in lens:
         model = gp.Model("zzt")
@@ -90,7 +117,7 @@ def main():
             gp.quicksum(
                 x[edge]
                 for edge in G.edges
-            ) == len_
+            ) == len_ - 1
         )
 
         for fr, to in G.edges:
@@ -146,40 +173,64 @@ def main():
 
                 # exit()
 
-        model.params.OutputFlag = 0
+        # model.params.OutputFlag = 0
         model.params.LazyConstraints = 1
         model.setObjective(obj, GRB.MAXIMIZE)
         model._vals = x, starts, ends
+
+        # add 10s time limit
+
+        model.params.TimeLimit = 60
+
+        # set gap to 40%
+
+        model.params.MIPGap = 0.4
+
         model.optimize(callback)
 
-        start = [node for node in G.nodes if starts[node].x > 0.5][0]
-        end = [node for node in G.nodes if ends[node].x > 0.5][0]
+        try:
 
-        # print(start, end)
+            start = [node for node in G.nodes if starts[node].x > 0.5][0]
+            end = [node for node in G.nodes if ends[node].x > 0.5][0]
 
-        G2 = nx.DiGraph()
+            # print(start, end)
 
-        for edge in G.edges:
-            if x[edge].x > 0.5:
-                G2.add_edge(*edge)
+            G2 = nx.DiGraph()
 
-        nx.draw(G2, with_labels=True)
+            for edge in G.edges:
+                if x[edge].x > 0.5:
+                    G2.add_edge(*edge)
 
-        plt.show()
+            # print ULRD
 
-        # print ULRD
+            path = nx.shortest_path(G2, start, end)
 
-        path = nx.shortest_path(G2, start, end)
+            for node in path:
+                sol[node[0]][node[1]] = 1
 
-        for node in path:
-            sol[node[0]][node[1]] = 1
+            # pprint(sol)
 
-        print(start[1], start[0], end=' ')
+            # nx.draw(G2, with_labels=True)
 
-        for fr, to in zip(path, path[1:] + path[: 1]):
-            print(chars[to, fr], end='')
+            # plt.show()
 
-        print()
+            with open("out4.txt", "a") as f:
+
+                f.write(str(start[1]) + ' ' + str(start[0]) + ' ')
+
+                for fr, to in zip(path, path[1:]):
+                    f.write(chars[fr, to] + ' ')
+
+                f.write("\n")
+
+            # exit()
+
+            print()
+        except:
+            print("NO SOLUTION")
+
+            with open("out4.txt", "a") as f:
+                f.write("\n")
 
         # exit()
 
