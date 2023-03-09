@@ -20,6 +20,7 @@ pair<int, int> fix_coord(int i, int j, int R, int C) {
 struct Instance {
   int C, R, S;
   vector<vector<int>> V, wormhole;
+  vector<pair<int, int>> wormholes;
   vector<int> L;
 
   Instance(int _C, int _R, int _S) {
@@ -58,8 +59,36 @@ struct Solution {
       auto [ni, nj] = fix_coord(i + di[dir], j + dj[dir], ins->R, ins->C);
       if (used[ni][nj])
         continue;
+
       if (ins->wormhole[ni][nj]) {
-        // TODO: implement wormholes
+        int wi = -1;
+        int wj = -1;
+
+        for (int tries = 0; tries < 10; tries++) {
+          int idx = rand(0, ins->wormholes.size() - 1);
+          auto [wormhole_i, wormhole_j] = ins->wormholes[idx];
+          if (ni == wormhole_i && nj == wormhole_j)
+            continue;
+
+          wi = wormhole_i;
+          wj = wormhole_j;
+          break;
+        }
+        
+        if (wi == -1 || len == 1)
+          continue;
+
+        
+        snakes.back().push_back(string(1, MOVE[dir]));
+        snakes.back().push_back(to_string(wj));
+        snakes.back().push_back(to_string(wi));
+        dfs(wi, wj, len - 1);
+        if (!current_snake_found_path) {
+          snakes.back().pop_back();
+          snakes.back().pop_back();
+          snakes.back().pop_back();
+        }
+
         continue;
       }
 
@@ -126,6 +155,8 @@ void input_matrix(Instance &ins, ifstream &in) {
       in >> num;
       if (num == "*") {
         ins.wormhole[i][j] = 1;
+        ins.wormholes.emplace_back(i, j);
+        // cout << "adding new wormhole at " << i << " " << j << endl;
       } else {
         ins.V[i][j] = stoi(num);
       }
@@ -139,8 +170,9 @@ int main() {
   // string const file_path = "../in/01-chilling-cat.txt";
   // string const file_path = "../in/02-swarming-ant.txt";
   // string const file_path = "../in/03-input-anti-greedy.txt";
-  // string const file_path = "../in/04-input-low-points.txt";
-  string const file_path = "../in/05-input-opposite-points-holes.txt";
+  string const file_path = "../in/04-input-low-points.txt";
+  // string const file_path = "../in/05-input-opposite-points-holes.txt";
+  // string const file_path = "../in/06-input-reply-running-man.txt";
   
   ifstream in(file_path);
   
