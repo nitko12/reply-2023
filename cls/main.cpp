@@ -2,8 +2,10 @@
 #include <fstream>
 #include <vector>
 #include <cstdlib>
+#include <algorithm>
 
 #define POP_SIZE 1000
+#define NEW_SIZE 100
 #define CLONE_FACTOR 100
 
 using namespace std;
@@ -16,7 +18,7 @@ struct Specimen {
 
 struct custom_less_than {
 	inline bool operator() (const Specimen& specimen1, const Specimen& specimen2) {
-		return (specimen1.fitness < specimen2.fitness);
+		return (specimen1.fitness > specimen2.fitness);
 	}
 };
 
@@ -26,6 +28,18 @@ int S;
 int* Slens;
 vector<pair<int, int>> wormholeLocations;
 string** matrix;
+
+void printPop(vector<Specimen>& population) {
+	for(int k = 0; k < population.size(); ++k) {
+		cout << "SPECIMEN " << k << "\tFitness=" << population[k].fitness << "\n";
+		for(int i = 0; i < population[k].snakes.size(); ++i) {
+			for(int j = 0; j < population[k].snakes[i].size(); ++j) {
+				cout << population[k].snakes[i][j] << " ";
+			}
+			cout << "\n";
+		}
+	}
+}
 
 bool wormhole(vector<vector<bool>>& map, int* i, int* j) {
 	for(int t = 0; t < wormholeLocations.size(); ++t){
@@ -150,38 +164,47 @@ bool recursiveGenerate(vector<string>& snake_string, vector<vector<bool>>& map, 
 
 bool generateSpecimen(Specimen& specimen) {
 	for(int snake = 0; snake < S; ++snake) {
-		bool success = false;
-		for(int t = 0; t < 100; ++t) {
-			int i = rand() % R;
-			int j = rand() % C;
-			vector<string> snake_string;
-			snake_string.push_back(to_string(i));
-			snake_string.push_back(to_string(j));
-			success = recursiveGenerate(snake_string, specimen.map, i, j, Slens[snake]);
-			if(success) {
-				specimen.snakes.push_back(snake_string);
-				break;
-			}
-		}
-		if(!success) {
+		vector<string> snake_string;
+		generateSnake(snake_string, specimen.map);
+		if(!snake_string.empty()) {
+			specimen.snakes.clear();
 			return false;
 		}
+		specimen.snakes[i] = snake_string;
+
 	}
 	return true;
 }
 
-void initPopulation(Specimen* population) {
-	for(int i = 0; i < POP_SIZE; ++i) {
+void generateSnake(vector<string>& snake_string, vector<vector<bool>>& map) {
+	bool success = false;
+	for(int t = 0; t < 100; ++t) {
+		int i = rand() % R;
+		int j = rand() % C;
+		snake_string.push_back(to_string(i));
+		snake_string.push_back(to_string(j));
+		success = recursiveGenerate(snake_string, specimen.map, i, j, Slens[snake]);
+		if(success) {
+			break;
+		}
+	}
+	if(!success) {
+		snake_string.clear();
+	}
+}
+
+void generatePopulation(vector<Specimen>& population, int size) {
+	for(int i = 0; i < size; ++i) {
 		Specimen newSpecimen = {vector<vector<string>>(),
 								vector<vector<bool>>(R, vector<bool>(C, 0)),
 								0};
 		generateSpecimen(newSpecimen);
-		population[i] = newSpecimen;
+		population.push_back(newSpecimen);
 	}
 }
 
-void evaluate(Specimen* population, int popSize) {
-	for(int p = 0; p < popSize; ++p) {
+void evaluate(vector<Specimen>& population) {
+	for(int p = 0; p < population.size(); ++p) {
 		population[p].fitness = 0;
 		for(int i = 0; i < R; ++i) {
 			for(int j = 0; j < C; ++j) {
@@ -193,35 +216,89 @@ void evaluate(Specimen* population, int popSize) {
 	}
 }
 
-/*vector<vector<string>>*/ void immunological() {
+void clonePopulation(vector<Specimen>& population, vector<Specimen>& clones) {
+	for(int i = 0; i < population.size(); ++i) {
+		int clones = (CLONE_FACTOR * POP_SIZE) / (i + 1);
+		for(int j = 0; j < clones; ++j) {
+			clones.push_back(population[i]);
+		}
+	}
+}
+
+void reverseSnake(vector<string>& snake) {
+	vector<string> newSnake;
+}
+
+removeSnakeFromMap(Specimen& specimen, int snakeIndex, int cutoff) {
+	/// aaaaaaaaaaaaaaaaaaaaaaaaa
+}
+
+void mutate(vector<Specimen>& clones) {
+	for(int c = 0; c < clones.size() && success; ++c) {
+		bool success = true;
+		for(s = 0; s < Slens.size(); ++s) {
+			if(rand() % 2 == 0) {
+				reverseSnake(clones[c].snakes[s]);
+			}
+			int cutoff = rand() % Slens[s];
+			int i, j;
+			removeSnakeFromMap(clones[c], s, cutoff, &i, &j); // RETURN SNAKES CURRENT (i, j)
+			if(cutoff == 0) {
+				vector<string> snake_string;
+				if(!generateSnake(snake_string, clones[c].map)) {
+					success = false;
+					break;
+				}
+				clones[c].snakes[s] = snake_string;
+			} else {
+				success = recursiveGenerate(clones[c].snakes[s], clones[c].map, i, j, Slens[s] - clones[c].snakes[s].size());
+			}
+		}
+		if(!success) {
+			clones[c] = clones[clones.size() - 1];
+			clones.pop_back();
+			--c;
+		}
+	}
+}
+
+vector<vector<string>> immunological() {
 	
 	// inicijaliziraj populaciju
-	Specimen population[POP_SIZE];
-	Specimen clones[POP_SIZE*CLONE_FACTOR];
-	initPopulation(population);
+	vector<Specimen> population;
+	vector<Specimen> clones;
+	vector<Specimen> newPops;
+	generatePopulation(population, POP_SIZE);
 
 	// ponavljaj do zaustavljanja:
 	for(int iter = 0; iter < 1; ++iter) {
 		// evaluiraj populaciju
-		evaluate(population, POP_SIZE);
-		// odaberi neke ili sve za kloniranje
-		// kloniraj odabrane
+		evaluate(population);
+		sort(population.begin(), population.end(), custom_less_than());
+		// kloniraj sve (proporcionalno dobroti)
+		clonePopulation(population, clones);
 		// hipermutiraj klonove
+		mutate(clones);
 		// evaluiraj klonove
+		evaluate(clones);
+		sort(clones.begin(), clones.end(), custom_less_than());
+		
 		// populacija = najbolji klonovi
+		population.clear();
+		for(int i = 0; i < POP_SIZE; ++i) {
+			population.push_back(clones[i]);
+		}
 		// stvori skroz nove jedinke
+		generatePopulation(newPops, NEW_SIZE);
 		// zamijeni najgore u populaciji s novim jedinkama
+		for(int i = 0; i < newPops.size(); ++i) {
+			population[population.size() - 1 - i] = newPops[i];
+		}
+
+		cout << "Iter: " << iter << "\t Fitness=" << population[0].fitness << "\n";
 	}
 
-	for(int k = 0; k < POP_SIZE; ++k) {
-		cout << "SPECIMEN " << k << "\tFitness=" << population[k].fitness << "\n";
-		for(int i = 0; i < population[k].snakes.size(); ++i) {
-			for(int j = 0; j < population[k].snakes[i].size(); ++j) {
-				cout << population[k].snakes[i][j] << " ";
-			}
-			cout << "\n";
-		}
-	}
+	return population[0].snakes;
 		
 	// vrati najbolju jedinku
 }
@@ -253,9 +330,7 @@ int main() {
 		}
 	}
 
-	immunological();
-
-	/*vector<vector<string>> best = immunological();
+	vector<vector<string>> best = immunological();
 	
 	for(int i = 0; i < best.size(); ++i) {
 		cout << best[i][0];
